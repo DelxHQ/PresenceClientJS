@@ -1,8 +1,8 @@
 import chalk from 'chalk'
 
 export class Logger {
-  public log(...args: any) {
+  public log(message: any, prefix?: string) {
     const time = new Date()
-    console.log(`${chalk.bgBlue(`[${time.toLocaleTimeString()}]`)}`, ...args)
+    console.log(`${chalk.bgBlue(`[${time.toLocaleTimeString()}]`)}${prefix ? chalk.bgYellow(`[${prefix}]`) : ''}`, message)
   }
 }
