@@ -2,5 +2,6 @@
   "ignore": [".git", "node_modules"],
   "watch": ["src"],
   "exec": "clear && node -r ts-node/register src/start.ts",
-  "ext": "ts,json"
+  "ext": "ts,json",
+  "signal": "SIGHUP"
 }

@@ -12,19 +12,23 @@ export class Client {
   private clientId = '831528990439243806'
 
   private currentProgramId: bigint
+  private pingTimeout: NodeJS.Timeout | null = null
 
-  constructor(private host: string, private port: number) { }
+  constructor(private host: string, private port: number) {}
 
   public async init() {
     await Promise.all([
-      this.initListeners()
+      this.initListeners(),
+      this.connectToDiscord(),
     ])
+
+    return this
   }
 
   public async setActivity(gameName: string, programId: bigint, timestamp?: number) {
     await this.rpcClient.setActivity({
       details: gameName,
-      largeImageKey: programId.toString(),
+      largeImageKey: '0' + programId.toString(16),
       largeImageText: gameName,
       startTimestamp: timestamp
     })
@@ -32,53 +36,69 @@ export class Client {
   }
 
   private async initListeners() {
+    this.rpcClient.on('ready', () => {
+      this.logger.log(`Connected to Discord successfully. Setting Rich Presence for ${this.rpcClient.user.username}...`)
+    })
+
     this.socketClient.on('connect', () => {
-      this.logger.log('Successfully connected to Nintendo Switch console. Waiting to connect to Discord...')
-
-      this.connectToDiscord()
+      this.logger.log('Successfully connected to Nintendo Switch console.')
     })
-    this.socketClient.on('data', message => {
-      const stream = new BinaryStream(message)
 
-      let magic = stream.readULong()
-      let programId = stream.readULong()
-      let name = stream.readString(612).split('\0')[0]
+    this.socketClient.on('data', this.handleData)
+    this.socketClient.on('error', this.handleError)
+  }
 
-      if (programId === 0n) name = 'Home Menu'
+  private handleData(message: Buffer) {
+    clearTimeout(this.pingTimeout)
+    const stream = new BinaryStream(message)
 
-      // this.logger.log(`MAGIC: ${magic.toString(16)}, PROGRAM ID ${programId.toString(16)}, NAME: ${name}`)
+    stream.readULong() // Magic
+    let programId = stream.readULong()
+    let name = stream.readString(612).split('\0')[0]
 
-      if (programId != this.currentProgramId) {
-        this.currentProgramId = programId
-        this.setActivity(name, programId, programId === 0n ? null : Date.now())
-        // this.logger.log(`${name}'s program ID is ${programId} (${programId.toString(16)})`)
-      }
-    })
-    this.socketClient.on('error', err => {
-      switch (err['code']) {
-        case 'ETIMEDOUT':
-          this.logger.log('Timed out whilst attempting to connect to the Nintendo Switch console. Retrying connection...')
-          this.startSocket()
-          break
-        default:
-          this.logger.log('An unknown error has occured. Please make a new issue at https://github.com/DelxHQ/ClientSwitchPresence/issues with a screenshot with of the terminal. Shutting down...')
-          console.error(err)
+    if (programId === 0n) name = 'Home Menu'
 
-          this.rpcClient.destroy()
-          this.socketClient.destroy()
-          process.exit()
-      }
-    })
+    if (programId != this.currentProgramId) {
+      this.currentProgramId = programId
+      this.setActivity(name, programId, programId === 0n ? null : Date.now())
+      // this.logger.log(`${name}'s program ID is ${programId} (${programId.toString(16)})`)
+    }
+
+    this.pingTimeout = setTimeout(() => {
+      this.logger.log('Not received data in 15 seconds, reconnecting...')
+      this.startSocket()
+    }, 15000)
+  }
+
+  private handleError(err: any) {
+    switch (err.code) {
+      case 'ETIMEDOUT':
+        this.logger.log('Timed out whilst attempting to connect to the Nintendo Switch console. Retrying connection...')
+        this.startSocket()
+        break
+      default:
+        this.logger.log('An unknown error has occured. Please make a new issue at https://github.com/DelxHQ/ClientSwitchPresence/issues with a screenshot with of the terminal. Shutting down...')
+        console.error(err)
+
+        this.rpcClient.destroy()
+        this.socketClient.destroy()
+        process.exit()
+    }
   }
 
   private startSocket() {
+    this.logger.log('Connecting to Switch...')
     this.socketClient.connect(this.port, this.host)
   }
 
   private async connectToDiscord() {
-    this.rpcClient.on('ready', () => {
-      this.logger.log(`Connected to Discord successfully. Setting Rich Presence for ${this.rpcClient.user.username}...`)
-    })
+    this.logger.log('Connecting to Discord...')
     await this.rpcClient.login({ clientId: this.clientId })
   }
+
+  public async destroy() {
+    await this.rpcClient.destroy()
+    this.socketClient.destroy()
+  }
+
 }
