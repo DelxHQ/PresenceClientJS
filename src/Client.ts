@@ -6,7 +6,7 @@ import BinaryStream from './util/BinaryStream'
 export class Client {
 
   private rpcClient = new RPC.Client({ transport: 'ipc' })
-  private socketClient = net.connect(this.port, this.host)
+  private socketClient = net.connect(this.port, this.host).setTimeout(3000)
   private logger = new Logger()
 
   private clientId = '831528990439243806'
@@ -89,6 +89,8 @@ export class Client {
   private startSocket() {
     this.logger.log('Connecting to Switch...')
     this.socketClient.connect(this.port, this.host)
+
+    if (!this.connectedToDiscord && this.connectedToSwitch) this.connectToDiscord()
   }
 
   private async connectToDiscord() {
