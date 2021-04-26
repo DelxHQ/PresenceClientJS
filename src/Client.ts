@@ -6,7 +6,7 @@ import BinaryStream from './util/BinaryStream'
 export class Client {
 
   private rpcClient = new RPC.Client({ transport: 'ipc' })
-  private socketClient = net.connect(this.port, this.host).setTimeout(3000)
+  private socketClient = net.connect(this.port, this.host)
   private logger = new Logger()
 
   private clientId = '831528990439243806'
@@ -44,8 +44,8 @@ export class Client {
       this.logger.log('Successfully connected to Nintendo Switch console.')
     })
 
-    this.socketClient.on('data', this.handleData)
-    this.socketClient.on('error', this.handleError)
+    this.socketClient.on('data', data => this.handleData(data))
+    this.socketClient.on('error', err => this.handleError(err))
   }
 
   private handleData(message: Buffer) {
@@ -56,18 +56,21 @@ export class Client {
     let programId = stream.readULong()
     let name = stream.readString(612).split('\0')[0]
 
-    if (programId === 0n) name = 'Home Menu'
+    if (programId === 0n) {
+      programId = 0x0100000000001000n
+      name = 'Home Menu'
+    }
 
     if (programId != this.currentProgramId) {
       this.currentProgramId = programId
-      this.setActivity(name, programId, programId === 0n ? null : Date.now())
+      this.setActivity(name, programId, programId === 0x0100000000001000n ? null : Date.now())
       // this.logger.log(`${name}'s program ID is ${programId} (${programId.toString(16)})`)
     }
 
     this.pingTimeout = setTimeout(() => {
-      this.logger.log('Not received data in 15 seconds, reconnecting...')
+      this.logger.log('Not received data in 10 seconds, reconnecting...')
       this.startSocket()
-    }, 15000)
+    }, 10000)
   }
 
   private handleError(err: any) {
@@ -77,7 +80,7 @@ export class Client {
         this.startSocket()
         break
       default:
-        this.logger.log('An unknown error has occured. Please make a new issue at https://github.com/DelxHQ/ClientSwitchPresence/issues with a screenshot with of the terminal. Shutting down...')
+        this.logger.log('An unknown error has occured. Please make a new issue at https://github.com/DelxHQ/ClientSwitchPresence/issues with a screenshot with of the terminal.')
         console.error(err)
 
         this.rpcClient.destroy()
@@ -89,8 +92,6 @@ export class Client {
   private startSocket() {
     this.logger.log('Connecting to Switch...')
     this.socketClient.connect(this.port, this.host)
-
-    if (!this.connectedToDiscord && this.connectedToSwitch) this.connectToDiscord()
   }
 
   private async connectToDiscord() {
