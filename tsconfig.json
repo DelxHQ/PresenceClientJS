@@ -4,11 +4,12 @@
     "module": "commonjs",
     "lib": [],
     "outDir": "lib",
-    "rootDir": "./",
+    "rootDir": "./src",
     "moduleResolution": "node",
     "strict": false,
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    "removeComments": true,
     "skipLibCheck": true,
     "typeRoots": [
       "./node_modules/@types",

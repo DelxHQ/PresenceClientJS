@@ -2,11 +2,12 @@ import net from 'net'
 import RPC from 'discord-rpc'
 import { Logger } from './util/Logger'
 import BinaryStream from './util/BinaryStream'
+import chalk from 'chalk'
 
 export class Client {
 
   private rpcClient = new RPC.Client({ transport: 'ipc' })
-  private socketClient = net.connect(this.port, this.host)
+  private socketClient: net.Socket = net.connect(this.port, this.host)
   private logger = new Logger()
 
   private clientId = '831528990439243806'
@@ -32,12 +33,11 @@ export class Client {
       largeImageText: gameName,
       startTimestamp: timestamp
     })
-    this.logger.log(`Successfully set Rich Presence to ${gameName}`)
   }
 
   private async initListeners() {
     this.rpcClient.on('ready', () => {
-      this.logger.log(`Connected to Discord successfully. Setting Rich Presence for ${this.rpcClient.user.username}...`)
+      this.logger.log(`Successfully connected to Discord.`)
     })
 
     this.socketClient.on('connect', () => {
@@ -64,7 +64,7 @@ export class Client {
     if (programId != this.currentProgramId) {
       this.currentProgramId = programId
       this.setActivity(name, programId, programId === 0x0100000000001000n ? null : Date.now())
-      // this.logger.log(`${name}'s program ID is ${programId} (${programId.toString(16)})`)
+      this.logger.log(`Program ID for ${chalk.yellow(name)} is ${chalk.yellow(programId.toString(16))}`)
     }
 
     this.pingTimeout = setTimeout(() => {
