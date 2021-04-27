@@ -7,7 +7,7 @@ import chalk from 'chalk'
 export class Client {
 
   private rpcClient = new RPC.Client({ transport: 'ipc' })
-  private socketClient: net.Socket = net.connect(this.port, this.host)
+  private socketClient = net.connect(this.port, this.host)
   private logger = new Logger()
 
   private clientId = '831528990439243806'
