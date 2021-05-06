@@ -1,6 +1,6 @@
 
 # PresenceClientJS
-Custom client for [SwitchPresence-Rewritten](https://github.com/HeadpatServices/SwitchPresence-Rewritten) which adds support for dynamically changing `BigImageKey` for the Rich Presence.
+Custom client for [SwitchPresence-Rewritten](https://github.com/HeadpatServices/SwitchPresence-Rewritten) which adds support for dynamically changing `LargeImageKey` for the Rich Presence.
 
 # Install
 **Installing SwitchPresence requires a Switch running Atmosphere custom firmware.**
