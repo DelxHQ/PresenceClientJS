@@ -7,7 +7,7 @@ import chalk from 'chalk'
 export class Client {
 
   private rpcClient = new RPC.Client({ transport: 'ipc' })
-  private socketClient = net.connect(this.port, this.host)
+  private socketClient
   private logger = new Logger()
 
   private clientId = '831528990439243806'
@@ -36,6 +36,7 @@ export class Client {
   }
 
   private async initListeners() {
+    this.socketClient = net.connect(this.port, this.host)
     this.rpcClient.on('ready', () => {
       this.logger.log(`Successfully connected to Discord.`)
     })
